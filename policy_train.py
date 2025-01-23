@@ -103,10 +103,10 @@ def make_optimizer(policy):
     return optimizer
 
 def forward_pass(data:torch.Tensor, policy):
-    image_data, qpos_data, action_data, is_pad = data
-    image_data, qpos_data, action_data, is_pad = image_data.cuda(), qpos_data.cuda(), action_data.cuda(), is_pad.cuda()
+    image_data, qpos_data, qforce_data, action_data, is_pad = data
+    image_data, qpos_data, qforce_data, action_data, is_pad = image_data.cuda(), qpos_data.cuda(), qforce_data.cuda(), action_data.cuda(), is_pad.cuda()
     # print("image_data.shape:", image_data.shape)
-    return policy(qpos_data, image_data, action_data, is_pad)  # TODO remove None
+    return policy(qpos_data, qforce_data, image_data, action_data, is_pad)  # TODO remove None
 
 def get_epoch_base(pretrain_path, epoch_base):
     if pretrain_path == "":

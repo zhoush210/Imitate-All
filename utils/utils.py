@@ -52,6 +52,12 @@ class EpisodicDataset(torch.utils.data.Dataset):
             self.norm_stats["qpos_std"] = self.norm_stats["qpos_std"][
                 self.observation_indexes
             ]
+            self.norm_stats["qforce_mean"] = self.norm_stats["qforce_mean"][
+                self.observation_indexes
+            ]
+            self.norm_stats["qforce_std"] = self.norm_stats["qforce_std"][
+                self.observation_indexes
+            ]
         if self.action_indexes is not None:
             self.norm_stats["action_mean"] = self.norm_stats["action_mean"][
                 self.action_indexes
@@ -93,8 +99,10 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 start_ts = np.random.choice(episode_len)
             # get observation at start_ts only
             qpos = root["/observations/qpos"][start_ts]
+            qforce = root["/observations/qforce"][start_ts]
             if self.observation_indexes is not None:
                 qpos = qpos[self.observation_indexes]
+                qforce = qforce[self.observation_indexes]
             image_dict = dict()
             for cam_name in self.camera_names:
                 image_dict[cam_name] = root[f"/observations/images/{cam_name}"][
@@ -137,6 +145,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
         # construct observations
         image_data = torch.from_numpy(all_cam_images)
         qpos_data = torch.from_numpy(qpos).float()
+        qforce_data = torch.from_numpy(qforce).float()
         action_data = torch.from_numpy(padded_action).float()
         is_pad = torch.from_numpy(is_pad).bool()
 
@@ -158,9 +167,12 @@ class EpisodicDataset(torch.utils.data.Dataset):
         qpos_data = (qpos_data - self.norm_stats["qpos_mean"]) / self.norm_stats[
             "qpos_std"
         ]
+        qforce_data = (qforce_data - self.norm_stats["qforce_mean"]) / self.norm_stats[
+            "qforce_std"
+        ]
         # print(f"qpos_data_shape: {qpos_data.shape}")
         # print(f"action_data_shape: {action_data.shape}")
-        return image_data, qpos_data, action_data, is_pad
+        return image_data, qpos_data, qforce_data, action_data, is_pad
 
 
 def find_all_hdf5(dataset_dir, skip_mirrored_data=True):
@@ -282,20 +294,25 @@ class LoadDataConfig(object):
 
 def get_norm_stats(dataset_dir, num_episodes, config: LoadDataConfig):
     all_qpos_data = []
+    all_qforce_data = []
     all_action_data = []
     for episode_idx in num_episodes:
         dataset_path = os.path.join(dataset_dir, f"episode_{episode_idx}.hdf5")
         dataset_path = os.path.abspath(dataset_path)
         with h5py.File(dataset_path, "r") as root:
             qpos = root["/observations/qpos"][()]
+            qforce = root["/observations/qforce"][()]
             action = root["/action"][()]
         all_qpos_data.append(qpos)
+        all_qforce_data.append(qforce)
         all_action_data.append(action)
 
     all_qpos_data = np.concatenate(all_qpos_data)
+    all_qforce_data = np.concatenate(all_qforce_data)
     all_action_data = np.concatenate(all_action_data)
     if config.observation_slice is not None:
         all_qpos_data = all_qpos_data[:, config.observation_slice]
+        all_qforce_data = all_qforce_data[:, config.observation_slice]
     if config.action_slice is not None:
         all_action_data = all_action_data[:, config.action_slice]
 
@@ -309,12 +326,20 @@ def get_norm_stats(dataset_dir, num_episodes, config: LoadDataConfig):
     qpos_std = np.std(all_qpos_data, 0)
     qpos_std = np.clip(qpos_std, 1e-2, np.inf)  # clipping
 
+    # normalize qpos data
+    qforce_mean = np.mean(all_qforce_data, 0)
+    qforce_std = np.std(all_qforce_data, 0)
+    qforce_std = np.clip(qforce_std, 1e-2, np.inf)  # clipping
+
     stats = {
         "action_mean": action_mean,
         "action_std": action_std,
         "qpos_mean": qpos_mean,
         "qpos_std": qpos_std,
         "example_qpos": qpos,
+        "qforce_mean": qforce_mean,
+        "qforce_std": qforce_std,
+        "example_qforce": qforce,
     }
     # print("action_mean_shape", stats["action_mean"].shape)
     return stats
@@ -384,6 +409,7 @@ def save_eval_results(
     rollout_id,
     image_list,
     qpos_list,
+    qforce_list,
     action_list,
     camera_names,
     dt,
@@ -414,6 +440,7 @@ def save_eval_results(
         # save as hdf5
         data_dict = {
             "/observations/qpos": qpos_list,
+            "/observations/qforce": qforce_list,
             "/action": action_list,
         }
         image_dict: Dict[str, list] = {}

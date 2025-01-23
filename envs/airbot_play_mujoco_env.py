@@ -44,6 +44,7 @@ class MujocoEnv(object):
         time.sleep(sleep_time)
         obs = collections.OrderedDict()
         obs["qpos"] = list(raw_obs["jq"])
+        obs["qforce"] = list(raw_obs["jf"])
         # print("obs gripper", raw_obs["jq"][-1])
         # print("pre_obs", obs["qpos"])
         # obs["qpos"][-1] *= 25  # undo the normalization
@@ -71,6 +72,7 @@ class MujocoEnv(object):
         if get_obs:
             obs = collections.OrderedDict()
             obs["qpos"] = list(raw_obs["jq"])
+            obs["qforce"] = list(raw_obs["jf"])
             obs["images"] = {}
             for id in self.exec_node.config.obs_rgb_cam_id:
                 obs["images"][f"{id}"] = raw_obs["img"][id][:, :, ::-1]

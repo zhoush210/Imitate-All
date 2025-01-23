@@ -64,6 +64,7 @@ def load_raw_mujoco_data(raw_dir, downsampling=0):
         flatten_mode="hdf5",
         name_converter={
             "/obs/jq": "/observations/qpos",
+            "/obs/jf": "/observations/qforce",
             "/act": "/action",
         },
         pre_process=None,

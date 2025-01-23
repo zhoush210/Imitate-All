@@ -128,10 +128,12 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
     if use_stats:
         with open(stats_path, "rb") as f:
             stats = pickle.load(f)
-        pre_process = lambda s_qpos: (s_qpos - stats["qpos_mean"]) / stats["qpos_std"]
+        pre_process_qpos = lambda s_qpos: (s_qpos - stats["qpos_mean"]) / stats["qpos_std"]
+        pre_process_qforce = lambda s_qforce: (s_qforce - stats["qforce_mean"]) / stats["qforce_std"]
         post_process = lambda a: a * stats["action_std"] + stats["action_mean"]
     else:
-        pre_process = lambda s_qpos: s_qpos
+        pre_process_qpos = lambda s_qpos: s_qpos
+        pre_process_qforce = lambda s_qforce: s_qforce
         post_process = lambda a: a
 
     # evaluation loop
@@ -164,8 +166,10 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
         teda.reset()
 
         qpos_history = torch.zeros((1, max_timesteps, state_dim)).cuda()
+        qforce_history = torch.zeros((1, max_timesteps, state_dim)).cuda()
         image_list = []  # for visualization
         qpos_list = []
+        qforce_list = []
         action_list = []
         rewards = []
 
@@ -193,13 +197,18 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
                         # pre-process current observations
                         curr_image = get_image(ts, camera_names, image_mode)
                         qpos_numpy = np.array(ts.observation["qpos"])
+                        qforce_numpy = np.array(ts.observation["qforce"])
                         logger.debug(f"raw qpos: {qpos_numpy}")
-                        qpos = pre_process(qpos_numpy)  # normalize qpos
+                        logger.debug(f"raw qforce: {qforce_numpy}")
+                        qpos = pre_process_qpos(qpos_numpy)  # normalize qpos
+                        qforce = pre_process_qforce(qforce_numpy)  # normalize qforce
                         logger.debug(f"pre qpos: {qpos}")
+                        logger.debug(f"pre qforce: {qforce}")
                         qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
+                        qforce = torch.from_numpy(qforce).float().cuda().unsqueeze(0)
 
                         # (1, chunk_size, 7) for act
-                        all_actions: torch.Tensor = policy(qpos, curr_image)
+                        all_actions: torch.Tensor = policy(qpos, qforce, curr_image)
                         # logger.warning(f"all_actions:{all_actions}")
                         # t is the infer_t
                         all_time_actions[[t], act_step : act_step + chunk_size] = (
@@ -260,6 +269,9 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
             qpos = np.array(ts.observation["qpos"])
             qpos_history[:, t] = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
             qpos_list.append(qpos)
+            qforce = np.array(ts.observation["qforce"])
+            qforce_history[:, t] = torch.from_numpy(qforce).float().cuda().unsqueeze(0)
+            qforce_list.append(qforce)
             action_list.append(action)
             rewards.append(ts.reward)
         else:
@@ -286,6 +298,7 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
                 rollout_id,
                 image_list,
                 qpos_list,
+                qforce_list,
                 action_list,
                 camera_names,
                 dt,

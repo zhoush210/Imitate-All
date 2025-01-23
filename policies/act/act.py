@@ -41,7 +41,7 @@ class ACTPolicy(nn.Module):
             self.temporal_ensembler.reset()
 
     # TODO: 使用装饰器在外部进行包装
-    def __call__(self, qpos, image: Tensor, actions=None, is_pad=None):
+    def __call__(self, qpos, qforce, image: Tensor, actions=None, is_pad=None):
         if image.ndim == 4:
             image = image.unsqueeze(0)
         env_state = None
@@ -58,7 +58,7 @@ class ACTPolicy(nn.Module):
             is_pad = is_pad[:, : self.model.num_queries]
 
             a_hat, is_pad_hat, (mu, logvar) = self.model(
-                qpos, image, env_state, actions, is_pad
+                qpos, qforce, image, env_state, actions, is_pad
             )
             total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar)
             loss_dict = dict()
@@ -70,7 +70,7 @@ class ACTPolicy(nn.Module):
             return loss_dict
         else:  # inference
             # no action, sample from prior
-            a_hat, _, (_, _) = self.model(qpos, image, env_state)
+            a_hat, _, (_, _) = self.model(qpos, qforce, image, env_state)
             if self.temporal_ensembler is not None:
                 a_hat_one = self.temporal_ensembler.update(a_hat)
                 a_hat[0][0] = a_hat_one

@@ -65,6 +65,7 @@ class DETRVAE(nn.Module):
         self.cls_embed = nn.Embedding(1, hidden_dim) # extra cls token embedding
         self.encoder_action_proj = nn.Linear(action_dim, hidden_dim) # project action to embedding
         self.encoder_joint_proj = nn.Linear(state_dim, hidden_dim)  # project qpos to embedding
+        self.joint_fusion_proj = nn.Linear(hidden_dim * 2, hidden_dim)
         self.latent_proj = nn.Linear(hidden_dim, self.latent_dim*2) # project hidden state to latent std, var
         self.register_buffer('pos_table', get_sinusoid_encoding_table(1+1+num_queries, hidden_dim)) # [CLS], qpos, a_seq
 
@@ -85,7 +86,7 @@ class DETRVAE(nn.Module):
             all_cam_pos.append(pos)
         return all_cam_features, all_cam_pos
 
-    def forward(self, qpos, image, env_state, actions=None, is_pad=None):
+    def forward(self, qpos, qforce, image, env_state, actions=None, is_pad=None):
         """
         qpos: batch, qpos_dim
         image: batch, num_cam, channel, height, width
@@ -102,9 +103,18 @@ class DETRVAE(nn.Module):
             action_embed = self.encoder_action_proj(actions) # (bs, seq, hidden_dim)
             qpos_embed = self.encoder_joint_proj(qpos)  # (bs, hidden_dim)
             qpos_embed = torch.unsqueeze(qpos_embed, axis=1)  # (bs, 1, hidden_dim)
+            qforce_embed = self.encoder_joint_proj(qforce)  # (bs, hidden_dim)
+            qforce_embed = torch.unsqueeze(qforce_embed, axis=1)  # (bs, 1, hidden_dim)
+
+            # Concatenate qpos and qforce embeddings along the last dimension
+            joint_embed = torch.cat([qpos_embed, qforce_embed], dim=-1)  # (bs, 1, hidden_dim * 2)
+            joint_embed = self.joint_fusion_proj(joint_embed)  # Reduce to (bs, 1, hidden_dim)
+
             cls_embed = self.cls_embed.weight # (1, hidden_dim)
             cls_embed = torch.unsqueeze(cls_embed, axis=0).repeat(bs, 1, 1) # (bs, 1, hidden_dim)
-            encoder_input = torch.cat([cls_embed, qpos_embed, action_embed], axis=1) # (bs, seq+1, hidden_dim)
+
+            # Concatenate embeddings: CLS, joint, and action
+            encoder_input = torch.cat([cls_embed, joint_embed, action_embed], axis=1) # (bs, seq+1, hidden_dim)
             encoder_input = encoder_input.permute(1, 0, 2) # (seq+1, bs, hidden_dim)
             # do not mask cls token
             cls_joint_is_pad = torch.full((bs, 2), False).to(qpos.device) # False: not a padding
