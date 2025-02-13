@@ -43,7 +43,7 @@ def get_image(ts: dm_env.TimeStep, camera_names, mode=0):
             curr_image = rearrange(images[cam_name], "h w c -> c h w")
             curr_images.append(curr_image)
         curr_image = np.stack(curr_images, axis=0)
-        curr_image = torch.from_numpy(curr_image / 255.0).float().cuda().unsqueeze(0)
+        curr_image = torch.from_numpy(curr_image / 255.0).float().cpu().unsqueeze(0)
     else:  # 输出独立的张量图（且每个是多维的）  # TODO: 修改为每个是一维的
         curr_image = {}
         for cam_name in camera_names:

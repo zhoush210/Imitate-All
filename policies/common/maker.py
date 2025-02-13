@@ -29,10 +29,10 @@ def post_init_policies(policies: List[torch.nn.Module], stage, ckpt_paths) -> No
                 loading_status = policy.load_state_dict(torch.load(ckpt_path, weights_only=weights_only))
                 logging.info(f'Resume policy from: {ckpt_path}, Status: {loading_status}')
             elif stage == "eval":
-                loading_status = policy.load_state_dict(torch.load(ckpt_path, weights_only=weights_only))
+                loading_status = policy.load_state_dict(torch.load(ckpt_path, weights_only=weights_only,map_location=torch.device('cpu')))
                 logging.info(loading_status)
                 logging.info(f"Loaded: {ckpt_path}")
-        policy.cuda()
+        policy.cpu()
 
         if stage == "eval":
             policy.eval()

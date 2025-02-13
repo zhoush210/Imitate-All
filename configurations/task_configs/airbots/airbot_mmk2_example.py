@@ -19,7 +19,7 @@ def policy_maker(config: dict, stage=None):
 
 
 def environment_maker(config: dict):
-    from envs.airbot_mmk_env import make_env
+    from envs.airbot_com_mmk_env import make_env
 
     return make_env(config)
 
@@ -44,9 +44,9 @@ replace_task_name(TASK_NAME, stats_name="dataset_stats.pkl", time_stamp="now")
 # STATS_PATH = f"./my_ckpt/{TASK_NAME}/dataset_stats.pkl"
 # set_paths(DATA_DIR, CKPT_DIR, STATS_PATH)  # replace the default data and ckpt paths
 
-chunk_size = 25
+chunk_size = 50
 joint_num = 17
-TASK_CONFIG_DEFAULT["common"]["camera_names"] = ["head_camera"]
+TASK_CONFIG_DEFAULT["common"]["camera_names"] = ["left_camera","right_camera","head_camera"]
 TASK_CONFIG_DEFAULT["common"]["state_dim"] = joint_num
 TASK_CONFIG_DEFAULT["common"]["action_dim"] = joint_num
 TASK_CONFIG_DEFAULT["common"]["policy_config"]["temporal_agg"] = False
@@ -66,7 +66,7 @@ TASK_CONFIG_DEFAULT["train"]["pretrain_ckpt_path"] = ""
 TASK_CONFIG_DEFAULT["train"]["pretrain_epoch_base"] = "AUTO"
 
 TASK_CONFIG_DEFAULT["eval"]["start_joint"] = "AUTO"
-TASK_CONFIG_DEFAULT["eval"]["max_timesteps"] = 300
+TASK_CONFIG_DEFAULT["eval"]["max_timesteps"] = 200
 TASK_CONFIG_DEFAULT["eval"]["ensemble"] = None
 TASK_CONFIG_DEFAULT["eval"]["environments"]["environment_maker"] = environment_maker
 TASK_CONFIG_DEFAULT["eval"]["ckpt_names"] = ["policy_best.ckpt"]

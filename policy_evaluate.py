@@ -170,9 +170,9 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
         # evaluation loop
         all_time_actions = torch.zeros(
             [max_timesteps, max_timesteps + num_queries, action_dim]
-        ).cuda()
+        ).cpu()
 
-        qpos_history = torch.zeros((1, max_timesteps, state_dim)).cuda()
+        qpos_history = torch.zeros((1, max_timesteps, state_dim)).cpu()
         image_list = []  # for visualization
         qpos_list = []
         action_list = []
@@ -204,7 +204,7 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
                     logger.debug(f"raw qpos: {qpos_numpy}")
                     qpos = pre_process(qpos_numpy)  # normalize qpos
                     logger.debug(f"pre qpos: {qpos}")
-                    qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
+                    qpos = torch.from_numpy(qpos).float().cpu().unsqueeze(0)
                     qpos_history[:, t] = qpos
 
                     logger.debug(f"observe time: {time.time() - start_time}")

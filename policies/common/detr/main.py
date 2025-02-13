@@ -57,7 +57,7 @@ def build_ACT_model(args_override):
         setattr(args, k, v)
 
     model = build_ACT_model_(args)
-    model.cuda()
+    # model.cuda()
 
     return model, args
 

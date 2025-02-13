@@ -163,7 +163,7 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
         all_time_actions = teda.get_action_buffer()
         teda.reset()
 
-        qpos_history = torch.zeros((1, max_timesteps, state_dim)).cuda()
+        qpos_history = torch.zeros((1, max_timesteps, state_dim)).cpu()
         image_list = []  # for visualization
         qpos_list = []
         action_list = []
@@ -196,7 +196,7 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
                         logger.debug(f"raw qpos: {qpos_numpy}")
                         qpos = pre_process(qpos_numpy)  # normalize qpos
                         logger.debug(f"pre qpos: {qpos}")
-                        qpos = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
+                        qpos = torch.from_numpy(qpos).float().cpu().unsqueeze(0)
 
                         # (1, chunk_size, 7) for act
                         all_actions: torch.Tensor = policy(qpos, curr_image)
@@ -258,7 +258,7 @@ def eval_bc(config, ckpt_name, env: CommonEnv):
 
             # for visualization
             qpos = np.array(ts.observation["qpos"])
-            qpos_history[:, t] = torch.from_numpy(qpos).float().cuda().unsqueeze(0)
+            qpos_history[:, t] = torch.from_numpy(qpos).float().cpu().unsqueeze(0)
             qpos_list.append(qpos)
             action_list.append(action)
             rewards.append(ts.reward)

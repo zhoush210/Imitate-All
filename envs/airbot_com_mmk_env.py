@@ -3,7 +3,7 @@ from robots.common import make_robot_from_yaml
 import time
 import collections
 import dm_env
-
+import numpy as np
 
 class AIRBOTMMK2Env(object):
     def __init__(self, config_path: str):
@@ -48,6 +48,22 @@ class AIRBOTMMK2Env(object):
         sleep_time=0,
         get_obs=True,
     ):
+        joint_limits = (
+            (-3.09, 2.04),
+            (-2.92, 0.12),
+            (-0.04, 3.09),
+            (-2.95, 2.95),  # (-2.95, 2.95),
+            (-1.9, 1.9),  # (-1.08, 1.08),
+            (-2.90, 2.90),  # (-2.90, 2.90),
+            (0, 1),
+        )
+
+        jn = len(joint_limits)
+        for i in range(2):
+            for j in range(jn):
+                index = j + jn * i
+                action[index] = np.clip(action[index], *joint_limits[j])
+
         self.robot.send_action(action)
         time.sleep(sleep_time)
         obs = self._get_obs() if get_obs else None
