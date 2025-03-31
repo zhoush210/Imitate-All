@@ -7,7 +7,7 @@ import numpy as np
 import os, time, logging, pickle, inspect
 from typing import Dict
 from tqdm import tqdm
-from utils.utils import set_seed, save_eval_results
+from policies.act.utils.utils import set_seed, save_eval_results
 from configurations.task_configs.config_tools.basic_configer import (
     basic_parser,
     get_all_config,

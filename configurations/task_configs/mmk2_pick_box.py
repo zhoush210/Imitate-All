@@ -48,7 +48,7 @@ replace_task_name(TASK_NAME, stats_name="dataset_stats.pkl", time_stamp="now")
 
 chunk_size = 50
 joint_num = 17
-TASK_CONFIG_DEFAULT["common"]["camera_names"] = ['head_camera', 'left_camera', 'right_camera']
+TASK_CONFIG_DEFAULT["common"]["camera_names"] = ['0', '1', '2']
 TASK_CONFIG_DEFAULT["common"]["state_dim"] = joint_num
 TASK_CONFIG_DEFAULT["common"]["action_dim"] = joint_num
 TASK_CONFIG_DEFAULT["common"]["policy_config"]["temporal_agg"] = True
@@ -59,8 +59,8 @@ TASK_CONFIG_DEFAULT["common"]["policy_config"]["policy_maker"] = policy_maker
 
 
 TASK_CONFIG_DEFAULT["train"]["load_data"]["num_episodes"] = "ALL"
-TASK_CONFIG_DEFAULT["train"]["load_data"]["batch_size_train"] = 96
-TASK_CONFIG_DEFAULT["train"]["load_data"]["batch_size_validate"] = 96
+TASK_CONFIG_DEFAULT["train"]["load_data"]["batch_size_train"] = 32
+TASK_CONFIG_DEFAULT["train"]["load_data"]["batch_size_validate"] = 32
 TASK_CONFIG_DEFAULT["train"]["load_data"]["observation_slice"] = None
 TASK_CONFIG_DEFAULT["train"]["load_data"]["action_slice"] = None
 TASK_CONFIG_DEFAULT["train"]["num_epochs"] = 2000
