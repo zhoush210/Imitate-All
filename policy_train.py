@@ -9,7 +9,7 @@ import shutil
 import time
 import argparse
 
-from utils.utils import load_data, LoadDataConfig, compute_dict_mean, set_seed, detach_dict, GPUer
+from policies.act.utils.utils import load_data, LoadDataConfig, compute_dict_mean, set_seed, detach_dict, GPUer
 from configurations.task_configs.config_tools.basic_configer import basic_parser, get_all_config
 from policies.common.maker import make_policy
 import logging
