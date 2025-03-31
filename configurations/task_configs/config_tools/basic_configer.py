@@ -1,6 +1,6 @@
 import os
 import importlib
-from utils.utils import (
+from policies.act.utils.utils import (
     get_init_states,
     replace_timestamp,
 )

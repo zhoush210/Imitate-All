@@ -72,6 +72,6 @@ def prepare_cv2_imshow():
         print(f"{name} is ready")
         cv2.destroyAllWindows()
 
-    show_image("Main image")
+    # show_image("Main image")
 
     print("cv2.imshow is ready")

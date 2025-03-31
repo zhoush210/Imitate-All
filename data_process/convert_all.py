@@ -460,6 +460,8 @@ def raw_to_dict(
     if pre_process is None:
         pre_process = lambda x: x
     for ep_name in tqdm(episode_names, desc="Data Converting"):
+        if ep_name == "segment" or ep_name=="output":
+            continue
         ep_dir = raw_dir / str(ep_name)
 
         # dict for each episode

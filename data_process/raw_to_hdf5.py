@@ -14,6 +14,7 @@ parser.add_argument("-ds", "--downsampling", type=int, default=0)
 parser.add_argument("-md", "--mode", type=str, default="real3")
 parser.add_argument("-pad", "--padding", action="store_true")
 parser.add_argument("-dir", "--raw_dir", type=str, default="data/raw")
+parser.add_argument("-segment", "--segment", action="store_true", help="If set, use videos from output directory instead of raw directory")
 # parser.add_argument("-bson", "--use_bson_style", action="store_true")
 args = parser.parse_args()
 
@@ -22,12 +23,20 @@ downsampling = args.downsampling
 mode = args.mode
 padding = args.padding
 raw_dir = args.raw_dir
+segment = args.segment
 # use_bson_style = args.use_bson_style
 
 task_dir = os.path.abspath(f"{raw_dir}/{task_name}")
 assert os.path.exists(task_dir), f"task_dir {task_dir} not exists"
 # raw_dir = os.path.abspath(raw_dir)
 # assert os.path.exists(raw_dir)
+
+# 如果设置了segment参数，视频数据将从output目录读取
+if segment:
+    video_dir = os.path.abspath(f"data/output/{task_name}")
+    assert os.path.exists(video_dir), f"video_dir {video_dir} not exists"
+else:
+    video_dir = task_dir
 
 
 def load_raw_real_data(raw_dir, downsampling=0):
@@ -109,9 +118,95 @@ os.makedirs(target_dir, exist_ok=True)
 
 
 def save_one(index, ep_name):
+    # 动作数据依然从原目录读取
+    low_dim = low_dim_data[ep_name]
+    
+    # 视频数据根据segment参数决定从哪个目录读取
+    video_path = f"{video_dir}/{ep_name}" if segment else f"{task_dir}/{ep_name}"
+    
+    # 获取动作数据长度
+    action_length = len(list(low_dim.values())[0])
+    
+    # 检查所有视频的帧数
+    video_lengths = []
+    for video_name in video_names:
+        video_file = os.path.join(video_path, video_name)
+        if os.path.exists(video_file):
+            cap = cv2.VideoCapture(video_file)
+            if cap.isOpened():
+                video_lengths.append(int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+                cap.release()
+            else:
+                print(f"Warning: Could not open video {video_file}")
+                video_lengths.append(float('inf'))  # 使用无穷大表示无法打开的视频
+        else:
+            print(f"Warning: Video file not found: {video_file}")
+            video_lengths.append(float('inf'))  # 使用无穷大表示不存在的视频
+    
+    # 计算有效长度（所有视频和动作数据的最小长度）
+    min_video_length = min(video_lengths) if video_lengths else 0
+    valid_length = min(action_length, min_video_length)
+    
+    if valid_length <= 0:
+        print(f"Error: Episode {ep_name} has no valid frames. Skipping.")
+        low_dim_data.pop(ep_name)
+        return
+    
+    # 如果有长度不匹配，输出警告信息
+    if action_length != min_video_length:
+        print(f"Warning: Length mismatch in {ep_name}:")
+        print(f"  - Action data length: {action_length}")
+        print(f"  - Video lengths: {video_lengths}")
+        print(f"  - Using valid length: {valid_length}")
+    
+    # 截断动作数据到有效长度
+    truncated_low_dim = {}
+    for key, value in low_dim.items():
+        truncated_low_dim[key] = value[:valid_length]
+    
+    # 创建临时视频文件夹，存储截断后的视频
+    if action_length != min_video_length:
+        temp_dir = os.path.join(os.path.dirname(video_path), f"temp_{ep_name}")
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # 重新写入截断后的视频
+        temp_video_names = []
+        for video_name in video_names:
+            src_video = os.path.join(video_path, video_name)
+            dst_video = os.path.join(temp_dir, video_name)
+            
+            if os.path.exists(src_video):
+                cap = cv2.VideoCapture(src_video)
+                if cap.isOpened():
+                    fps = cap.get(cv2.CAP_PROP_FPS)
+                    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                    
+                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                    out = cv2.VideoWriter(dst_video, fourcc, fps, (width, height))
+                    
+                    frame_count = 0
+                    while cap.isOpened() and frame_count < valid_length:
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
+                        out.write(frame)
+                        frame_count += 1
+                    
+                    cap.release()
+                    out.release()
+                    temp_video_names.append(video_name)
+                    print(f"Created truncated video: {dst_video} with {frame_count} frames")
+            
+        # 使用临时视频目录进行处理
+        if temp_video_names:
+            video_path = temp_dir
+            print(f"Using temporary truncated videos from {temp_dir}")
+    
+    # 使用截断后的数据进行处理
     crd.merge_video_and_save(
-        low_dim_data[ep_name],
-        f"{task_dir}/{ep_name}",
+        truncated_low_dim,
+        video_path,
         video_names,
         crd.save_dict_to_hdf5,
         name_converter,
@@ -120,6 +215,13 @@ def save_one(index, ep_name):
         max_pad_length,
         downsampling,
     )
+    
+    # 清理临时文件
+    if action_length != min_video_length and 'temp_dir' in locals() and os.path.exists(temp_dir):
+        import shutil
+        shutil.rmtree(temp_dir)
+        print(f"Removed temporary directory: {temp_dir}")
+    
     low_dim_data.pop(ep_name)
 
 
