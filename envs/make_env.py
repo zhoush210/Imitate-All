@@ -105,9 +105,13 @@ def make_environment(env_config):
         else:
             raise NotImplementedError(f"robot_name: {robot_name} is not implemented")
     elif habitat == "mujoco":
-        from envs.airbot_play_mujoco_env import make_env
         print(f"Using Mujoco environment with config file: {robot_name}")
-        env = make_env(robot_name)
+        if "mmk" in robot_name:
+            from envs.mmk2_discoverse_env import make_env
+            env = make_env(robot_name, joint_num)
+        else:
+            from envs.airbot_play_mujoco_env import make_env
+            env = make_env(robot_name)
     elif habitat == "isaac":
         raise NotImplementedError(f"habitat: {habitat} is not implemented")
     else:
