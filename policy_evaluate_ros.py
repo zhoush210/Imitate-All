@@ -53,7 +53,7 @@ class Evaluate(Node):
         self.right_arm_cmd_puber = self.create_publisher(Float64MultiArray, '/mmk2/right_arm_forward_position_controller/commands', 1)
 
     def head_color_callback(self, msg):
-        self.obs["images"]["head_camera"] = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        self.obs["images"]["0"] = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         # self.get_logger().info('Received head color image')
 
     def head_depth_callback(self, msg):
@@ -63,12 +63,11 @@ class Evaluate(Node):
 
     def left_color_callback(self, msg):
         # img = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-        self.obs["images"]["left_camera"] = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-        # self.obs["images"]["0"] = img
+        self.obs["images"]["1"] = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         # self.get_logger().info('Received left color image')
 
     def right_color_callback(self, msg):
-        self.obs["images"]["right_camera"] = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+        self.obs["images"]["2"] = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         # self.get_logger().info('Received right color image')
 
     def joint_state_callback(self, msg):
