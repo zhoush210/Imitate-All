@@ -261,8 +261,10 @@ class Evaluate(Node):
                     image_list.append(self.ts.observation["images"])
                     
                     curr_image = get_image(self.ts, camera_names, image_mode)
-                    qpos_numpy = np.array(self.ts.observation["qpos"])
-
+                    if action_dim == 14:
+                        qpos_numpy = np.array(self.ts.observation["qpos"])[3:]
+                    else:
+                        qpos_numpy = np.array(self.ts.observation["qpos"])
                     logger.debug(f"raw qpos: {qpos_numpy}")
                     qpos = pre_process(qpos_numpy)  # normalize qpos
                     logger.debug(f"pre qpos: {qpos}")
@@ -302,6 +304,8 @@ class Evaluate(Node):
                             ros1_logger.log_2D("image_" + name, image)
                     # publish action:
                     np.save("last_action.npy", action)
+                    if action_dim == 14:
+                        action = np.hstack((yolo_end_action[:3], action[:]))
                     self.publish_action(action)
 
                     # for visualization
