@@ -28,6 +28,8 @@ from policy_evaluate import eval_parser, get_ckpt_path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+end_action = np.load("last_action.npy")
+
 class Evaluate(Node):
     def __init__(self):
         self.running = True
@@ -303,9 +305,9 @@ class Evaluate(Node):
                         for name, image in self.ts.observation["images"].items():
                             ros1_logger.log_2D("image_" + name, image)
                     # publish action:
-                    np.save("last_action.npy", action)
                     if action_dim == 14:
-                        action = np.hstack((yolo_end_action[:3], action[:]))
+                        action = np.hstack((end_action[:3], action[:]))
+                    np.save("last_action.npy", self.obs["qpos"])
                     self.publish_action(action)
 
                     # for visualization
@@ -333,6 +335,7 @@ if __name__ == "__main__":
     np.set_printoptions(precision=3, suppress=True, linewidth=500)
 
     exec_node = Evaluate()
+    exec_node.publish_action(end_action)
     spin_thread = threading.Thread(target=lambda:rclpy.spin(exec_node))
     spin_thread.start()
 
